@@ -51,3 +51,8 @@ test('sanitizeChatReply compacts whitespace and enforces length', () => {
   const reply = sanitizeChatReply('  hello\n\nthere   friend  ', 12);
   assert.equal(reply, 'hello there');
 });
+
+test('sanitizeChatReply removes markdown-style formatting characters', () => {
+  const reply = sanitizeChatReply('`hello` *_chat_* > friend #1', 50);
+  assert.equal(reply, 'hello chat friend 1');
+});
