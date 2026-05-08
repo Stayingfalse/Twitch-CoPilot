@@ -4,6 +4,8 @@ const { TranscriptSource } = require('./transcript-source');
 const { TwitchApi } = require('./twitch-api');
 const { createAiProvider } = require('./llm');
 const { createMemoryStore } = require('./vector-memory');
+const { ChatterProfiles } = require('./chatter-profiles');
+const { GameContext } = require('./game-context');
 
 class TwitchCopilotBot {
   constructor(config) {
@@ -23,6 +25,8 @@ class TwitchCopilotBot {
     this.memory = null;
     this.client = null;
     this.timers = [];
+    this.chatterProfiles = new ChatterProfiles();
+    this.gameContext = new GameContext();
   }
 
   async start() {
@@ -87,7 +91,20 @@ class TwitchCopilotBot {
   }
 
   async refreshStreamContext() {
+    const previousGame = this.streamContext.gameName;
     this.streamContext = await this.twitchApi.getStreamContext(this.config.channel);
+
+    // Detect game change and update game context
+    if (this.streamContext.gameName && this.streamContext.gameName !== previousGame) {
+      this.gameContext.startGameSession(this.streamContext.gameName, this.streamContext.title);
+
+      // Store game context in memory
+      const gameEntries = this.gameContext.getMemoryEntries(this.streamContext.gameName);
+      if (gameEntries.length > 0) {
+        await this.memory.upsert(gameEntries);
+      }
+    }
+
     return this.streamContext;
   }
 
@@ -99,13 +116,22 @@ class TwitchCopilotBot {
 
     this.transcriptQueue.push(...freshSegments);
     this.transcriptQueue = this.transcriptQueue.slice(-this.config.transcript.maxSegments);
+
+    // Detect and store funny quotes from transcript
+    for (const segment of freshSegments) {
+      if (this.gameContext.isFunnyQuote(segment.text)) {
+        this.gameContext.addQuote(segment.text, segment.speaker || 'streamer');
+      }
+    }
+
     await this.memory.upsert(
       freshSegments.map((segment) => ({
         id: segment.id,
         text: segment.text,
         metadata: {
           source: 'transcript',
-          speaker: segment.speaker || 'streamer'
+          speaker: segment.speaker || 'streamer',
+          game: this.streamContext.gameName || 'unknown'
         }
       }))
     );
@@ -118,16 +144,42 @@ class TwitchCopilotBot {
     }
 
     const chatter = tags['display-name'] || tags.username || 'viewer';
+
+    // Update chatter profile
+    this.chatterProfiles.recordMessage(chatter, message, {
+      game: this.streamContext.gameName,
+      timestamp: Date.now()
+    });
+
+    // Detect and store funny quotes from chat
+    if (this.gameContext.isFunnyQuote(message)) {
+      this.gameContext.addQuote(message, chatter);
+      this.chatterProfiles.addQuote(chatter, message, {
+        game: this.streamContext.gameName
+      });
+    }
+
+    // Store in vector memory
     await this.memory.upsert([
       {
         id: `chat-${Date.now()}-${chatter}`,
         text: message,
         metadata: {
           source: 'chat',
-          chatter
+          chatter,
+          game: this.streamContext.gameName || 'unknown'
         }
       }
     ]);
+
+    // Periodically update chatter context in memory
+    const profile = this.chatterProfiles.getProfile(chatter);
+    if (profile.messageCount % 10 === 0) {
+      const chatterEntries = this.chatterProfiles.getMemoryEntries(chatter);
+      if (chatterEntries.length > 0) {
+        await this.memory.upsert(chatterEntries);
+      }
+    }
 
     if (this.shouldWelcome(chatter, tags)) {
       await this.respond({ intent: 'welcome', chatter, chatMessage: message });
@@ -174,6 +226,14 @@ class TwitchCopilotBot {
   }
 
   async respond({ intent, chatter = '', chatMessage = '', transcriptSegments = [] }) {
+    // Get chatter context if available
+    const chatterContext = chatter ? this.chatterProfiles.getChatterContext(chatter) : null;
+
+    // Get game context
+    const gameContextSummary = this.streamContext.gameName
+      ? this.gameContext.getGameContextSummary(this.streamContext.gameName)
+      : null;
+
     const query = chatMessage || transcriptSegments.map((segment) => segment.text).join(' ') || `${this.streamContext.gameName} ${this.streamContext.title}`;
     const memoryMatches = await this.memory.search(query, 5);
     const prompt = buildCopilotPrompt({
@@ -182,6 +242,8 @@ class TwitchCopilotBot {
       channel: this.config.channel,
       streamContext: this.streamContext,
       chatter,
+      chatterContext,
+      gameContext: gameContextSummary,
       chatMessage,
       transcriptSegments: transcriptSegments.length ? transcriptSegments : this.transcriptQueue.slice(-3),
       memoryMatches
@@ -200,6 +262,16 @@ class TwitchCopilotBot {
 
     if (!reply) {
       return '';
+    }
+
+    // Record interaction in chatter profile
+    if (chatter) {
+      this.chatterProfiles.recordInteraction(chatter, {
+        intent,
+        prompt: chatMessage,
+        response: reply,
+        game: this.streamContext.gameName
+      });
     }
 
     this.lastResponseAt = Date.now();
