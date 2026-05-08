@@ -1,27 +1,33 @@
 {
-  "name": "twitch-copilot",
+  "name": "twitch-copilot-monorepo",
   "version": "1.0.0",
-  "description": "A Twitch Bot that has stream context including game, title but also transcript of the video so knows what the streamer is saying, chat is saying and more. Uses all of this to stay engaged in chat, talking about the plays and responding to chatters.",
-  "main": "src/index.js",
+  "private": true,
+  "description": "Twitch co-pilot bot with integrated MCP vector memory server",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "start": "node src/index.js",
-    "test": "node --test"
+    "start": "npm run start --workspace=@twitch-copilot/bot",
+    "test": "npm run test --workspace=@twitch-copilot/bot",
+    "start:mcp": "npm run start --workspace=@twitch-copilot/mcp-server",
+    "install:all": "npm install && npm install --workspaces"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Stayingfalse/Twitch-CoPilot.git"
   },
-  "keywords": [],
+  "keywords": [
+    "twitch",
+    "bot",
+    "copilot",
+    "ai",
+    "mcp",
+    "vector-memory"
+  ],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "bugs": {
     "url": "https://github.com/Stayingfalse/Twitch-CoPilot/issues"
   },
-  "homepage": "https://github.com/Stayingfalse/Twitch-CoPilot#readme",
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
-    "dotenv": "^17.4.2",
-    "tmi.js": "^1.8.5"
-  }
+  "homepage": "https://github.com/Stayingfalse/Twitch-CoPilot#readme"
 }

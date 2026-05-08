@@ -1,0 +1,30 @@
+{
+  "name": "@twitch-copilot/bot",
+  "version": "1.0.0",
+  "description": "A Twitch Bot that has stream context including game, title but also transcript of the video so knows what the streamer is saying, chat is saying and more. Uses all of this to stay engaged in chat, talking about the plays and responding to chatters.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Stayingfalse/Twitch-CoPilot.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Stayingfalse/Twitch-CoPilot/issues"
+  },
+  "homepage": "https://github.com/Stayingfalse/Twitch-CoPilot#readme",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@twurple/api": "^8.1.3",
+    "dotenv": "^17.4.2",
+    "m3u8-parser": "^7.2.0",
+    "node-webvtt": "^1.9.4",
+    "tmi.js": "^1.8.5"
+  }
+}

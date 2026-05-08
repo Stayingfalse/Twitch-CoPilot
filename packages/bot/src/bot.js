@@ -27,6 +27,7 @@ class TwitchCopilotBot {
 
   async start() {
     this.memory = await createMemoryStore(this.config.memory);
+    this.transcriptSource.start();
     await this.refreshStreamContext();
     await this.ingestTranscript();
     this.startTimers();
@@ -78,6 +79,10 @@ class TwitchCopilotBot {
 
     if (this.memory) {
       await this.memory.close();
+    }
+
+    if (this.transcriptSource) {
+      this.transcriptSource.stop();
     }
   }
 

@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  twitch-copilot:
+    build: .
+    container_name: twitch-copilot
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - TRANSCRIPT_SOURCE=live
+    volumes:
+      # Optional: mount .env file
+      - ./.env:/app/.env:ro
+      # Optional: persist logs
+      - ./logs:/app/logs
+    # If you need to access the container for debugging
+    # ports:
+    #   - "8080:8080"
+    networks:
+      - copilot-network
+
+networks:
+  copilot-network:
+    driver: bridge

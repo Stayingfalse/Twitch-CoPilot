@@ -48,7 +48,7 @@ function loadConfig() {
   const channel = process.env.TWITCH_CHANNEL || '';
   const botName = process.env.BOT_DISPLAY_NAME || process.env.TWITCH_BOT_USERNAME || 'Twitch Copilot';
   const aiProvider = process.env.AI_PROVIDER || (process.env.GEMINI_API_KEY ? 'gemini' : process.env.LOCAL_LLM_URL ? 'local' : 'fallback');
-  const transcriptSource = process.env.TRANSCRIPT_SOURCE || (process.env.TRANSCRIPT_HTTP_URL ? 'http' : process.env.TRANSCRIPT_FILE ? 'file' : 'none');
+  const transcriptSource = process.env.TRANSCRIPT_SOURCE || 'live';
   const defaultCommandTrigger = `!${botName.toLowerCase().replace(/[^a-z0-9]+/g, '') || 'copilot'}`;
 
   return {
@@ -71,6 +71,8 @@ function loadConfig() {
     },
     transcript: {
       source: transcriptSource,
+      channel,
+      quality: process.env.TRANSCRIPT_QUALITY || 'best',
       filePath: resolveTranscriptPath(process.env.TRANSCRIPT_FILE || ''),
       httpUrl: process.env.TRANSCRIPT_HTTP_URL || '',
       pollIntervalMs: readInt('TRANSCRIPT_POLL_INTERVAL_MS', 15000),
@@ -80,8 +82,8 @@ function loadConfig() {
       namespace: process.env.MCP_VECTOR_NAMESPACE || channel || 'default',
       maxItems: readInt('MEMORY_MAX_ITEMS', 250),
       mcp: {
-        command: process.env.MCP_VECTOR_SERVER_COMMAND || '',
-        args: readJsonArray('MCP_VECTOR_SERVER_ARGS'),
+        command: process.env.MCP_VECTOR_SERVER_COMMAND || 'node',
+        args: readJsonArray('MCP_VECTOR_SERVER_ARGS') || ['../mcp-server/src/index.js'],
         cwd: process.env.MCP_VECTOR_SERVER_CWD || process.cwd(),
         upsertTool: process.env.MCP_VECTOR_UPSERT_TOOL || 'upsert_memory',
         searchTool: process.env.MCP_VECTOR_SEARCH_TOOL || 'search_memory'

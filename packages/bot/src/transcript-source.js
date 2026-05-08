@@ -1,4 +1,5 @@
 const fs = require('node:fs/promises');
+const { TwitchCaptionExtractor } = require('./twitch-captions');
 
 function normalizeSegments(payload) {
   const rawSegments = Array.isArray(payload)
@@ -33,6 +34,47 @@ class TranscriptSource {
   constructor(config) {
     this.config = config;
     this.seen = new Set();
+    this.captionQueue = [];
+    this.captionExtractor = null;
+
+    // If source is 'live', set up the caption extractor
+    if (config.source === 'live') {
+      this.captionExtractor = new TwitchCaptionExtractor({
+        channel: config.channel,
+        quality: config.quality || 'best'
+      });
+
+      this.captionExtractor.on('caption', (caption) => {
+        this.captionQueue.push({
+          id: `caption-${caption.timestamp}`,
+          text: caption.text,
+          timestamp: caption.timestamp
+        });
+
+        // Keep queue size manageable
+        if (this.captionQueue.length > config.maxSegments * 2) {
+          this.captionQueue = this.captionQueue.slice(-config.maxSegments);
+        }
+      });
+    }
+  }
+
+  /**
+   * Start the caption extractor if using live source
+   */
+  start() {
+    if (this.captionExtractor && !this.captionExtractor.isRunning()) {
+      this.captionExtractor.start();
+    }
+  }
+
+  /**
+   * Stop the caption extractor
+   */
+  stop() {
+    if (this.captionExtractor && this.captionExtractor.isRunning()) {
+      this.captionExtractor.stop();
+    }
   }
 
   async readPayload() {
@@ -63,6 +105,30 @@ class TranscriptSource {
       return [];
     }
 
+    // Handle live caption extraction
+    if (this.config.source === 'live') {
+      const fresh = [];
+
+      for (const caption of this.captionQueue) {
+        if (this.seen.has(caption.id)) {
+          continue;
+        }
+
+        this.seen.add(caption.id);
+        fresh.push(caption);
+      }
+
+      // Clear processed captions from queue
+      this.captionQueue = [];
+
+      if (this.seen.size > 500) {
+        this.seen = new Set(Array.from(this.seen).slice(-250));
+      }
+
+      return fresh;
+    }
+
+    // Handle file/http sources
     const payload = await this.readPayload();
     const segments = normalizeSegments(payload).slice(-this.config.maxSegments);
     const fresh = [];

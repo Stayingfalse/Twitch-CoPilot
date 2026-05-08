@@ -1,73 +1,219 @@
 # Twitch-CoPilot
 
-Node.js Twitch chat bot that:
+**Monorepo Docker-based Twitch chat bot** with integrated MCP vector memory that:
 
-- joins Twitch chat and greets first-time chatters
-- fetches live stream context from the Twitch API (game + title)
-- ingests streamer speech from either a transcript file or transcript HTTP endpoint
-- stores chat/transcript context in vector memory, with optional MCP-backed vector tools
-- replies with either Gemini, a local OpenAI-compatible model, or a fallback heuristic mode
+- Extracts **live closed captions** directly from Twitch video streams using streamlink + ccextractor
+- Joins Twitch chat and greets first-time chatters
+- Fetches live stream context from the Twitch API (game + title)
+- Stores chat and caption context in an integrated MCP vector memory server
+- Generates AI-powered responses using Gemini, local OpenAI-compatible models, or fallback heuristics
 
-## Setup
+## Architecture
 
-```bash
-npm install
+This is a **monorepo monocontainer** project where everything runs in a single Docker container:
+
+```
+twitch-copilot/
+├── packages/
+│   ├── bot/                    # Main Twitch bot application
+│   │   └── src/
+│   │       ├── index.js        # Entry point
+│   │       ├── bot.js          # Bot orchestration
+│   │       ├── twitch-captions.js  # Live caption extraction
+│   │       ├── transcript-source.js
+│   │       ├── twitch-api.js
+│   │       ├── llm.js
+│   │       ├── prompt.js
+│   │       ├── vector-memory.js
+│   │       └── config.js
+│   └── mcp-server/             # Integrated MCP vector memory server
+│       └── src/
+│           └── index.js        # MCP server with in-memory vector store
+├── Dockerfile                  # Multi-service container
+├── docker-compose.yml          # Deployment configuration
+└── README.md
 ```
 
-Create a `.env` file:
+## Quick Start with Docker
+
+### 1. Create a `.env` file
 
 ```env
-TWITCH_CHANNEL=your_channel
+# Required: Twitch Configuration
+TWITCH_CHANNEL=your_channel_name
 TWITCH_BOT_USERNAME=your_bot_username
 TWITCH_BOT_OAUTH=oauth:your_twitch_oauth_token
 TWITCH_CLIENT_ID=your_twitch_client_id
 TWITCH_CLIENT_SECRET=your_twitch_client_secret
 
-# AI provider: gemini | local | fallback
+# Required: AI Provider (choose one)
 AI_PROVIDER=gemini
 GEMINI_API_KEY=your_gemini_api_key
 GEMINI_MODEL=gemini-2.5-flash
-BOT_COMMAND_TRIGGER=!twitchcopilot
 
-# Transcript input: file | http | none
-TRANSCRIPT_SOURCE=file
-TRANSCRIPT_FILE=/absolute/path/to/transcript.json
-# or
-# TRANSCRIPT_SOURCE=http
-# TRANSCRIPT_HTTP_URL=http://127.0.0.1:8000/transcript
+# Optional: Bot Configuration
+BOT_DISPLAY_NAME=TwitchCopilot
+BOT_COMMAND_TRIGGER=!copilot
+BOT_RESPONSE_COOLDOWN_MS=30000
+BOT_COMMENTARY_INTERVAL_MS=90000
 
-# Optional MCP vector database bridge
-# MCP_VECTOR_SERVER_COMMAND=npx
-# MCP_VECTOR_SERVER_ARGS=[\"your-mcp-vector-server\"]
-# MCP_VECTOR_UPSERT_TOOL=upsert_memory
-# MCP_VECTOR_SEARCH_TOOL=search_memory
+# Optional: Transcript Configuration
+TRANSCRIPT_SOURCE=live
+TRANSCRIPT_QUALITY=best
+TRANSCRIPT_POLL_INTERVAL_MS=15000
+TRANSCRIPT_MAX_SEGMENTS=8
 ```
 
-## Transcript format
+### 2. Build and run with Docker Compose
 
-`TRANSCRIPT_FILE` or `TRANSCRIPT_HTTP_URL` can return either:
+```bash
+docker-compose up --build
+```
 
-- plain text lines, one transcript line per line
-- a JSON array of strings
-- a JSON array of objects like `{ "id": "123", "text": "Huge clutch there" }`
-- a JSON object with `segments` or `items`
+Or build and run directly with Docker:
 
-This makes it easy to plug in Whisper, a custom speech-to-text sidecar, or another transcript tool that watches the stream.
+```bash
+docker build -t twitch-copilot .
+docker run --env-file .env twitch-copilot
+```
 
-## Run
+### 3. Stop the container
 
+```bash
+docker-compose down
+```
+
+## How It Works
+
+### Live Caption Extraction
+
+The bot uses **streamlink** to access the Twitch stream and pipes it to **ccextractor** to extract CEA-608/708 closed captions in real-time:
+
+```
+Twitch Stream → streamlink → ccextractor → Bot (captions as text)
+```
+
+This happens automatically when `TRANSCRIPT_SOURCE=live` (the default).
+
+### Integrated MCP Vector Memory
+
+The included MCP server provides vector-based memory storage:
+
+- Uses simple character-frequency embeddings and cosine similarity
+- Automatically started in the Docker container
+- Stores and retrieves chat messages and caption context
+- No external database required
+
+### AI Response Generation
+
+The bot generates responses using:
+
+1. **Gemini API** (`AI_PROVIDER=gemini`) - Recommended
+2. **Local OpenAI-compatible API** (`AI_PROVIDER=local`) - e.g., Ollama
+3. **Fallback heuristics** (`AI_PROVIDER=fallback`) - Simple keyword-based responses
+
+## Configuration Reference
+
+### Transcript Sources
+
+- `live` (default) - Extract live closed captions from the video stream
+- `file` - Read from a local transcript file (legacy)
+- `http` - Fetch from an HTTP endpoint (legacy)
+- `none` - Disable transcript input
+
+### AI Providers
+
+**Gemini (Recommended)**
+```env
+AI_PROVIDER=gemini
+GEMINI_API_KEY=your_api_key
+GEMINI_MODEL=gemini-2.5-flash
+```
+
+**Local OpenAI-compatible (e.g., Ollama)**
+```env
+AI_PROVIDER=local
+LOCAL_LLM_URL=http://host.docker.internal:11434/v1/chat/completions
+LOCAL_LLM_MODEL=llama3.1:8b
+```
+
+**Fallback (No API required)**
+```env
+AI_PROVIDER=fallback
+```
+
+## Development
+
+### Local Development without Docker
+
+Install dependencies:
+```bash
+npm install
+```
+
+Install system dependencies (Ubuntu/Debian):
+```bash
+sudo apt-get install streamlink ccextractor
+```
+
+Run the bot:
 ```bash
 npm start
 ```
 
-For a local startup check without connecting to Twitch chat:
-
-```bash
-DRY_RUN=true TWITCH_CHANNEL=demo npm start
-```
-
-## Tests
-
+Run tests:
 ```bash
 npm test
 ```
+
+### Workspace Commands
+
+Start the bot:
+```bash
+npm run start --workspace=@twitch-copilot/bot
+```
+
+Start the MCP server separately:
+```bash
+npm run start --workspace=@twitch-copilot/mcp-server
+```
+
+## Requirements
+
+### For Docker Deployment
+- Docker
+- Docker Compose (optional)
+
+### For Local Development
+- Node.js 20+
+- streamlink (Python package)
+- ccextractor (system binary)
+- ffmpeg (system binary)
+
+## Troubleshooting
+
+### Captions not appearing
+
+1. Check that the channel has closed captions enabled
+2. Verify streamlink can access the stream: `streamlink https://twitch.tv/CHANNEL best --stdout`
+3. Check container logs: `docker-compose logs -f`
+
+### Memory issues
+
+The in-memory vector store has a default limit of 250 items. Increase it:
+
+```env
+MEMORY_MAX_ITEMS=500
+```
+
+### Connection issues from within Docker
+
+If the bot needs to access services on your host machine (e.g., local Ollama):
+
+```env
+LOCAL_LLM_URL=http://host.docker.internal:11434/v1/chat/completions
+```
+
+## License
+
+ISC
