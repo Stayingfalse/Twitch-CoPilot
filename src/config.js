@@ -106,7 +106,7 @@ function validateConfig(config) {
     issues.push('TWITCH_BOT_USERNAME and TWITCH_BOT_OAUTH are required unless DRY_RUN=true.');
   }
 
-  if (!config.twitch.clientId || !config.twitch.clientSecret) {
+  if (!config.dryRun && (!config.twitch.clientId || !config.twitch.clientSecret)) {
     issues.push('TWITCH_CLIENT_ID and TWITCH_CLIENT_SECRET are required for stream title/game context.');
   }
 

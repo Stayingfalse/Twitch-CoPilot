@@ -2,9 +2,10 @@
   "name": "twitch-copilot",
   "version": "1.0.0",
   "description": "A Twitch Bot that has stream context including game, title but also transcript of the video so knows what the streamer is saying, chat is saying and more. Uses all of this to stay engaged in chat, talking about the plays and responding to chatters.",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/index.js",
+    "test": "node --test"
   },
   "repository": {
     "type": "git",

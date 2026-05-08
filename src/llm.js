@@ -3,7 +3,8 @@ class GeminiProvider {
     this.config = config;
   }
 
-  async generate(prompt) {
+  async generate(context) {
+    const prompt = context.prompt;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(this.config.geminiModel)}:generateContent?key=${encodeURIComponent(this.config.geminiApiKey)}`;
     const response = await fetch(url, {
       method: 'POST',
@@ -41,7 +42,8 @@ class LocalOpenAiProvider {
     this.config = config;
   }
 
-  async generate(prompt) {
+  async generate(context) {
+    const prompt = context.prompt;
     const response = await fetch(this.config.localUrl, {
       method: 'POST',
       headers: {
