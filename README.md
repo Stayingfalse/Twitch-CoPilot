@@ -4,9 +4,12 @@
 
 - Extracts **live closed captions** directly from Twitch video streams using streamlink + ccextractor
 - Joins Twitch chat and greets first-time chatters
+- **Tracks individual chatter context** - remembers each chatter's interests, conversation history, and memorable quotes
+- **Tracks game-specific context** - stores memorable moments, achievements, and funny quotes for each game
 - Fetches live stream context from the Twitch API (game + title)
 - Stores chat and caption context in an integrated MCP vector memory server
-- Generates AI-powered responses using Gemini, local OpenAI-compatible models, or fallback heuristics
+- Generates **personalized AI-powered responses** using chatter history and game context
+- Supports Gemini, local OpenAI-compatible models, or fallback heuristics
 
 ## Architecture
 
@@ -20,6 +23,8 @@ twitch-copilot/
 │   │       ├── index.js        # Entry point
 │   │       ├── bot.js          # Bot orchestration
 │   │       ├── twitch-captions.js  # Live caption extraction
+│   │       ├── chatter-profiles.js # Per-chatter context tracking
+│   │       ├── game-context.js     # Per-game history and quotes
 │   │       ├── transcript-source.js
 │   │       ├── twitch-api.js
 │   │       ├── llm.js
@@ -111,6 +116,35 @@ The bot generates responses using:
 1. **Gemini API** (`AI_PROVIDER=gemini`) - Recommended
 2. **Local OpenAI-compatible API** (`AI_PROVIDER=local`) - e.g., Ollama
 3. **Fallback heuristics** (`AI_PROVIDER=fallback`) - Simple keyword-based responses
+
+### Context Tracking & Personalization
+
+The bot maintains rich context about every interaction:
+
+**Per-Chatter Context:**
+- Tracks each chatter's message history and interests
+- Identifies regular chatters vs first-time visitors
+- Stores memorable quotes from each chatter
+- Records conversation history with the bot
+- Detects topics each chatter frequently discusses
+- References past conversations naturally in responses
+
+**Per-Game Context:**
+- Tracks when each game is played and for how long
+- Stores memorable moments and achievements
+- Collects funny quotes from both streamer and chat
+- Automatically detects potentially funny/memorable messages
+- References game-specific history in commentary
+
+**Contextual Responses:**
+The bot uses this context to:
+- Welcome regulars by referencing their interests
+- Mention past funny quotes in relevant moments
+- Reference game-specific achievements and moments
+- Personalize responses based on chatter history
+- Make commentary more engaging and contextually aware
+
+All context is stored in the integrated vector memory for semantic retrieval, meaning the bot can recall relevant information even when not directly queried.
 
 ## Configuration Reference
 
