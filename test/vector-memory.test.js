@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { LocalVectorMemory } = require('../src/vector-memory');
 const { buildCopilotPrompt, sanitizeChatReply } = require('../src/prompt');
+const { TwitchCopilotBot } = require('../src/bot');
 
 test('LocalVectorMemory returns the most relevant stored context first', async () => {
   const memory = new LocalVectorMemory(10);
@@ -55,4 +56,26 @@ test('sanitizeChatReply compacts whitespace and enforces length', () => {
 test('sanitizeChatReply removes markdown-style formatting characters', () => {
   const reply = sanitizeChatReply('`hello` *_chat_* > friend #1', 50);
   assert.equal(reply, 'hello chat friend 1');
+});
+
+test('TwitchCopilotBot uses the configured command trigger for chat replies', () => {
+  const bot = new TwitchCopilotBot({
+    channel: 'demo',
+    botName: 'Twitch Copilot',
+    dryRun: true,
+    twitch: {},
+    transcript: { source: 'none', maxSegments: 3 },
+    ai: { provider: 'fallback' },
+    memory: { maxItems: 10, mcp: {} },
+    bot: {
+      commandTrigger: '!streambrain',
+      responseCooldownMs: 0,
+      commentaryIntervalMs: 1000,
+      streamPollIntervalMs: 1000,
+      maxReplyChars: 240
+    }
+  });
+
+  assert.equal(bot.shouldReplyToChat('!streambrain recap'), true);
+  assert.equal(bot.shouldReplyToChat('!copilot recap'), false);
 });

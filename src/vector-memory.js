@@ -46,7 +46,7 @@ class LocalVectorMemory {
 
   async upsert(entries) {
     for (const entry of entries) {
-      const signature = `${entry.metadata?.source || 'memory'}:${entry.text}`;
+      const signature = `${entry.id || 'memory'}:${entry.metadata?.source || 'memory'}:${entry.text}`;
       if (this.signatures.has(signature)) {
         continue;
       }
@@ -61,7 +61,7 @@ class LocalVectorMemory {
     while (this.items.length > this.maxItems) {
       const removed = this.items.shift();
       if (removed) {
-        this.signatures.delete(`${removed.metadata?.source || 'memory'}:${removed.text}`);
+        this.signatures.delete(`${removed.id || 'memory'}:${removed.metadata?.source || 'memory'}:${removed.text}`);
       }
     }
   }

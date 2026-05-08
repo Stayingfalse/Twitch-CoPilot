@@ -46,9 +46,10 @@ function resolveTranscriptPath(filePath) {
 
 function loadConfig() {
   const channel = process.env.TWITCH_CHANNEL || '';
-  const botName = process.env.BOT_DISPLAY_NAME || process.env.TWITCH_BOT_USERNAME || 'Twitch CoPilot';
+  const botName = process.env.BOT_DISPLAY_NAME || process.env.TWITCH_BOT_USERNAME || 'Twitch Copilot';
   const aiProvider = process.env.AI_PROVIDER || (process.env.GEMINI_API_KEY ? 'gemini' : process.env.LOCAL_LLM_URL ? 'local' : 'fallback');
   const transcriptSource = process.env.TRANSCRIPT_SOURCE || (process.env.TRANSCRIPT_HTTP_URL ? 'http' : process.env.TRANSCRIPT_FILE ? 'file' : 'none');
+  const defaultCommandTrigger = `!${botName.toLowerCase().replace(/[^a-z0-9]+/g, '') || 'copilot'}`;
 
   return {
     channel,
@@ -87,6 +88,7 @@ function loadConfig() {
       }
     },
     bot: {
+      commandTrigger: process.env.BOT_COMMAND_TRIGGER || defaultCommandTrigger,
       responseCooldownMs: readInt('BOT_RESPONSE_COOLDOWN_MS', 30000),
       commentaryIntervalMs: readInt('BOT_COMMENTARY_INTERVAL_MS', 90000),
       streamPollIntervalMs: readInt('TWITCH_STREAM_POLL_INTERVAL_MS', 60000),

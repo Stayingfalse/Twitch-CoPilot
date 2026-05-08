@@ -151,7 +151,7 @@ class TwitchCopilotBot {
     }
 
     const lower = String(message || '').toLowerCase();
-    return lower.includes(this.config.botName.toLowerCase()) || lower.startsWith('!copilot') || lower.endsWith('?');
+    return lower.includes(this.config.botName.toLowerCase()) || lower.startsWith(this.config.bot.commandTrigger.toLowerCase()) || lower.endsWith('?');
   }
 
   async maybeCommentate() {

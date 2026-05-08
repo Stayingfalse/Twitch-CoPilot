@@ -27,6 +27,7 @@ TWITCH_CLIENT_SECRET=your_twitch_client_secret
 AI_PROVIDER=gemini
 GEMINI_API_KEY=your_gemini_api_key
 GEMINI_MODEL=gemini-2.5-flash
+BOT_COMMAND_TRIGGER=!twitchcopilot
 
 # Transcript input: file | http | none
 TRANSCRIPT_SOURCE=file
