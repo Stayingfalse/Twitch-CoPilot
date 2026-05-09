@@ -44,17 +44,37 @@ function resolveTranscriptPath(filePath) {
   return path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);
 }
 
+function resolveDataPath(filePath, fallbackRelative) {
+  const input = filePath || fallbackRelative || '';
+  if (!input) {
+    return '';
+  }
+
+  return path.isAbsolute(input) ? input : path.resolve(process.cwd(), input);
+}
+
 function loadConfig() {
   const channel = process.env.TWITCH_CHANNEL || '';
   const botName = process.env.BOT_DISPLAY_NAME || process.env.TWITCH_BOT_USERNAME || 'Twitch Copilot';
   const aiProvider = process.env.AI_PROVIDER || (process.env.GEMINI_API_KEY ? 'gemini' : process.env.LOCAL_LLM_URL ? 'local' : 'fallback');
   const transcriptSource = process.env.TRANSCRIPT_SOURCE || 'live';
   const defaultCommandTrigger = `!${botName.toLowerCase().replace(/[^a-z0-9]+/g, '') || 'copilot'}`;
+  const webPort = readInt('WEB_PORT', 3000);
+  const webPublicUrl = process.env.WEB_PUBLIC_URL || `http://localhost:${webPort}`;
+  const webSessionSecret = process.env.WEB_SESSION_SECRET || process.env.TWITCH_CLIENT_SECRET || '';
 
   return {
     channel,
     botName,
     dryRun: readBool('DRY_RUN', false),
+    channels: {
+      storePath: resolveDataPath(process.env.CHANNEL_STORE_PATH || '', 'data/channels.json')
+    },
+    web: {
+      port: webPort,
+      publicUrl: webPublicUrl,
+      sessionSecret: webSessionSecret
+    },
     twitch: {
       botUsername: process.env.TWITCH_BOT_USERNAME || '',
       botOauth: process.env.TWITCH_BOT_OAUTH || '',
@@ -101,10 +121,6 @@ function loadConfig() {
 
 function validateConfig(config) {
   const issues = [];
-
-  if (!config.channel) {
-    issues.push('TWITCH_CHANNEL is required.');
-  }
 
   if (!config.dryRun && (!config.twitch.botUsername || !config.twitch.botOauth)) {
     issues.push('TWITCH_BOT_USERNAME and TWITCH_BOT_OAUTH are required unless DRY_RUN=true.');
