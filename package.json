@@ -1,0 +1,33 @@
+{
+  "name": "twitch-copilot-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Twitch co-pilot bot with integrated MCP vector memory server",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "start": "npm run start --workspace=@twitch-copilot/bot",
+    "test": "npm run test --workspace=@twitch-copilot/bot",
+    "start:mcp": "npm run start --workspace=@twitch-copilot/mcp-server",
+    "install:all": "npm install && npm install --workspaces"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Stayingfalse/Twitch-CoPilot.git"
+  },
+  "keywords": [
+    "twitch",
+    "bot",
+    "copilot",
+    "ai",
+    "mcp",
+    "vector-memory"
+  ],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Stayingfalse/Twitch-CoPilot/issues"
+  },
+  "homepage": "https://github.com/Stayingfalse/Twitch-CoPilot#readme"
+}

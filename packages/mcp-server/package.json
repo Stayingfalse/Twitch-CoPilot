@@ -1,0 +1,16 @@
+{
+  "name": "@twitch-copilot/mcp-server",
+  "version": "1.0.0",
+  "description": "MCP vector memory server for Twitch Copilot",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "mcp-vector-server": "./src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  }
+}
