@@ -103,15 +103,21 @@ function parseMcpPayload(result) {
 }
 
 class HybridVectorMemory {
-  constructor(config, localMemory) {
+  constructor(config, localMemory, sharedMcpClient = null) {
     this.config = config;
     this.localMemory = localMemory;
-    this.client = null;
-    this.callToolSchema = null;
+    this.client = sharedMcpClient?.client || null;
+    this.callToolSchema = sharedMcpClient?.callToolSchema || null;
+    this.transport = sharedMcpClient?.transport || null;
+    this.ownsTransport = false;
   }
 
   async connect() {
     if (!this.config.mcp.command) {
+      return;
+    }
+
+    if (this.client) {
       return;
     }
 
@@ -132,6 +138,7 @@ class HybridVectorMemory {
       cwd: this.config.mcp.cwd,
       stderr: 'pipe'
     });
+    this.ownsTransport = true;
 
     this.transport.stderr?.on('data', (chunk) => {
       const message = chunk.toString().trim();
@@ -205,20 +212,60 @@ class HybridVectorMemory {
   }
 
   async close() {
-    if (this.transport) {
+    if (this.transport && this.ownsTransport) {
       await this.transport.close();
     }
   }
 }
 
-async function createMemoryStore(config) {
+async function createSharedMcpClient(mcpConfig) {
+  if (!mcpConfig?.command) {
+    return null;
+  }
+
+  const [{ Client }, { StdioClientTransport }, { CallToolResultSchema }] = await Promise.all([
+    import('@modelcontextprotocol/sdk/client/index.js'),
+    import('@modelcontextprotocol/sdk/client/stdio.js'),
+    import('@modelcontextprotocol/sdk/types.js')
+  ]);
+
+  const client = new Client({
+    name: 'twitch-copilot',
+    version: '1.0.0'
+  });
+  const callToolSchema = CallToolResultSchema;
+  const transport = new StdioClientTransport({
+    command: mcpConfig.command,
+    args: mcpConfig.args,
+    cwd: mcpConfig.cwd,
+    stderr: 'pipe'
+  });
+
+  transport.stderr?.on('data', (chunk) => {
+    const message = chunk.toString().trim();
+    if (message) {
+      console.warn('[mcp]', message);
+    }
+  });
+
+  await client.connect(transport);
+  return {
+    client,
+    callToolSchema,
+    transport,
+    close: async () => transport.close()
+  };
+}
+
+async function createMemoryStore(config, { sharedMcpClient } = {}) {
   const localMemory = new LocalVectorMemory(config.maxItems);
-  const memory = new HybridVectorMemory(config, localMemory);
+  const memory = new HybridVectorMemory(config, localMemory, sharedMcpClient);
   await memory.connect();
   return memory;
 }
 
 module.exports = {
   LocalVectorMemory,
+  createSharedMcpClient,
   createMemoryStore
 };

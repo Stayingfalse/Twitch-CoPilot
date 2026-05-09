@@ -1,7 +1,7 @@
 const { loadConfig, validateConfig } = require('./config');
-const { TwitchCopilotBot } = require('./bot');
 const { ChannelStore } = require('./channel-store');
 const { createWebServer } = require('./web/server');
+const { TwitchCopilotMultiBot } = require('./multi-bot');
 
 async function main() {
   const config = loadConfig();
@@ -18,7 +18,7 @@ async function main() {
   }
 
   const channelStore = new ChannelStore({ filePath: config.channels.storePath });
-  let bot = null;
+  const bot = new TwitchCopilotMultiBot({ config, channelStore });
   let webServer = null;
 
   const stopAll = async () => {
@@ -36,16 +36,11 @@ async function main() {
     config,
     channelStore,
     onChannelConfigChanged: () => {
-      // Multi-channel joining is wired up in the next step; keep the hook for now.
+      bot.reloadChannels();
     }
   });
 
-  if (config.channel) {
-    bot = new TwitchCopilotBot(config);
-    await bot.start();
-  } else {
-    console.log('[bot] no TWITCH_CHANNEL set yet; waiting for OAuth enrollment via the web UI');
-  }
+  await bot.start();
 }
 
 main().catch((error) => {
