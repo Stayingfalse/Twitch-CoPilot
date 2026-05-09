@@ -90,16 +90,44 @@ class HeuristicProvider {
   }
 }
 
+/**
+ * Wraps an AI provider with error handling and fallback to heuristics
+ */
+class FallbackAiProvider {
+  constructor(primaryProvider, fallbackProvider) {
+    this.primaryProvider = primaryProvider;
+    this.fallbackProvider = fallbackProvider;
+  }
+
+  async generate(context) {
+    try {
+      const response = await this.primaryProvider.generate(context);
+      if (response && response.trim()) {
+        return response;
+      }
+      // If we got an empty response, fall back
+      console.log('[FallbackAI] Primary provider returned empty response, using fallback');
+      return await this.fallbackProvider.generate(context);
+    } catch (error) {
+      console.error('[FallbackAI] Primary provider error, using fallback:', error.message);
+      return await this.fallbackProvider.generate(context);
+    }
+  }
+}
+
 function createAiProvider(config) {
+  const heuristicProvider = new HeuristicProvider();
+
   if (config.provider === 'gemini') {
-    return new GeminiProvider(config);
+    return new FallbackAiProvider(new GeminiProvider(config), heuristicProvider);
   }
 
   if (config.provider === 'local') {
-    return new LocalOpenAiProvider(config);
+    return new FallbackAiProvider(new LocalOpenAiProvider(config), heuristicProvider);
   }
 
-  return new HeuristicProvider();
+  // If explicitly set to fallback or no provider configured, use heuristics only
+  return heuristicProvider;
 }
 
 module.exports = {
