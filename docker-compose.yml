@@ -15,9 +15,10 @@ services:
       - ./.env:/app/.env:ro
       # Optional: persist logs
       - ./logs:/app/logs
-    # If you need to access the container for debugging
-    # ports:
-    #   - "8080:8080"
+      # Recommended: persist enrolled channel settings (CHANNEL_STORE_PATH)
+      - ./data:/app/data
+    ports:
+      - "3000:3000"
     networks:
       - copilot-network
 

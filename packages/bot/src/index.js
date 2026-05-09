@@ -1,5 +1,7 @@
 const { loadConfig, validateConfig } = require('./config');
-const { TwitchCopilotBot } = require('./bot');
+const { ChannelStore } = require('./channel-store');
+const { createWebServer } = require('./web/server');
+const { TwitchCopilotMultiBot } = require('./multi-bot');
 
 async function main() {
   const config = loadConfig();
@@ -15,14 +17,28 @@ async function main() {
     return;
   }
 
-  const bot = new TwitchCopilotBot(config);
+  const channelStore = new ChannelStore({ filePath: config.channels.storePath });
+  const bot = new TwitchCopilotMultiBot({ config, channelStore });
+  let webServer = null;
+
+  const stopAll = async () => {
+    await Promise.allSettled([bot?.stop?.(), webServer?.close?.()]);
+  };
 
   for (const signal of ['SIGINT', 'SIGTERM']) {
     process.on(signal, async () => {
-      await bot.stop();
+      await stopAll();
       process.exit(0);
     });
   }
+
+  webServer = createWebServer({
+    config,
+    channelStore,
+    onChannelConfigChanged: () => {
+      bot.reloadChannels();
+    }
+  });
 
   await bot.start();
 }

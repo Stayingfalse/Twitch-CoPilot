@@ -53,8 +53,8 @@ cd /app/packages/bot\n\
 node src/index.js\n\
 ' > /app/start.sh && chmod +x /app/start.sh
 
-# Expose any ports if needed (not required for this app)
-# EXPOSE 8080
+# Web UI (OAuth enrollment + per-channel settings)
+EXPOSE 3000
 
 # Set environment variable defaults
 ENV NODE_ENV=production
