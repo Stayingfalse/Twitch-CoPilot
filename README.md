@@ -51,7 +51,7 @@ Before you can run the bot, you'll need to obtain API keys from third-party serv
 2. **Register an application**:
    - Click "Register Your Application"
    - Name: Choose any name (e.g., "MyTwitchCopilot")
-   - OAuth Redirect URLs: Use `http://localhost` for development
+   - OAuth Redirect URLs: Use `http://localhost:3000/auth/callback` for development
    - Category: Select "Chat Bot"
    - Click "Create"
 3. **Get your credentials**:
@@ -90,8 +90,9 @@ Create a `.env` file in the project root with your API keys and configuration:
 # ============================================
 # REQUIRED: Twitch Configuration
 # ============================================
-# The Twitch channel name to monitor (without the @ symbol)
-TWITCH_CHANNEL=your_channel_name
+# Optional fallback channel to join (without the @ symbol).
+# Recommended: leave blank and enroll channels via the web UI (http://localhost:3000).
+TWITCH_CHANNEL=
 
 # The username of the bot account (must match the OAuth token account)
 TWITCH_BOT_USERNAME=your_bot_username
@@ -105,6 +106,14 @@ TWITCH_CLIENT_ID=your_twitch_client_id
 
 # Twitch application Client Secret (from dev.twitch.tv/console)
 TWITCH_CLIENT_SECRET=your_twitch_client_secret
+
+# ============================================
+# OPTIONAL: Multi-Channel Enrollment Web UI
+# ============================================
+WEB_PORT=3000
+WEB_PUBLIC_URL=http://localhost:3000
+WEB_SESSION_SECRET=replace_with_a_long_random_string
+CHANNEL_STORE_PATH=./data/channels.json
 
 # ============================================
 # REQUIRED: AI Provider Configuration
@@ -174,6 +183,8 @@ TWITCH_STREAM_POLL_INTERVAL_MS=60000
 docker-compose up --build
 ```
 
+Open `http://localhost:3000`, log in with Twitch, and your channel will be enrolled automatically. This page also lets you change per-channel feature toggles and (optionally) per-channel API keys and AI model settings.
+
 Or build and run directly with Docker:
 
 ```bash
@@ -193,7 +204,8 @@ docker-compose down
 
 The bot is configured entirely through environment variables. All variables are documented in the `.env` file example above. Key points:
 
-- **Required variables**: `TWITCH_CHANNEL`, `TWITCH_BOT_USERNAME`, `TWITCH_BOT_OAUTH`, `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET`, and either `GEMINI_API_KEY` (for Gemini) or `AI_PROVIDER=fallback` (for no AI)
+- **Required variables**: `TWITCH_BOT_USERNAME`, `TWITCH_BOT_OAUTH`, `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET`, and either `GEMINI_API_KEY` (for Gemini) or `AI_PROVIDER=fallback` (for no AI)
+- **Channel enrollment**: `TWITCH_CHANNEL` is optional; enroll channels via the web UI on port 3000
 - **Optional variables**: All bot behavior, transcript, and memory settings have sensible defaults
 - **File location**: Place the `.env` file in the same directory as `docker-compose.yml`
 
