@@ -117,6 +117,8 @@ The bot generates responses using:
 2. **Local OpenAI-compatible API** (`AI_PROVIDER=local`) - e.g., Ollama
 3. **Fallback heuristics** (`AI_PROVIDER=fallback`) - Simple keyword-based responses
 
+**Smart Fallback:** When using Gemini or local AI providers, the bot automatically falls back to heuristic responses only if the AI model encounters an error or returns an empty response. This ensures non-repetitive, contextual responses whenever possible, while gracefully degrading when the AI is unavailable.
+
 ### Context Tracking & Personalization
 
 The bot maintains rich context about every interaction:
